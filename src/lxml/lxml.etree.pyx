@@ -3258,14 +3258,14 @@ def dump(_Element elem not None, *, bint pretty_print=True, with_tail=True):
     sys.stdout.write(xml)
 
 
-def tostring(element_or_tree, *, encoding=None, method=u"xml",
+def tostring(element_or_tree, *, encoding=None, method="xml",
              xml_declaration=None, bint pretty_print=False, bint with_tail=True,
              standalone=None, doctype=None,
              bint exclusive=False, bint with_comments=True, inclusive_ns_prefixes=None):
-    u"""tostring(element_or_tree, encoding=None, method="xml",
-                 xml_declaration=None, pretty_print=False, with_tail=True,
-                 standalone=None, doctype=None,
-                 exclusive=False, with_comments=True, inclusive_ns_prefixes=None)
+    """tostring(element_or_tree, encoding=None, method="xml",
+                xml_declaration=None, pretty_print=False, with_tail=True,
+                standalone=None, doctype=None,
+                exclusive=False, with_comments=True, inclusive_ns_prefixes=None)
 
     Serialize an element to an encoded string representation of its XML
     tree.
@@ -3312,7 +3312,10 @@ def tostring(element_or_tree, *, encoding=None, method=u"xml",
             raise ValueError("Cannot specify encoding with C14N")
         if xml_declaration:
             raise ValueError("Cannot enable XML declaration in C14N")
-        return _tostringC14N(element_or_tree, exclusive, with_comments, inclusive_ns_prefixes)
+        return _tostringC14N(
+            element_or_tree, exclusive, with_comments,
+            inclusive_ns_prefixes=inclusive_ns_prefixes,
+            used_ns_only=True)
     if not with_comments:
         raise ValueError("Can only discard comments in C14N serialisation")
     if encoding is _unicode or (encoding is not None and encoding.upper() == 'UNICODE'):

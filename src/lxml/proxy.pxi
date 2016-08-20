@@ -81,11 +81,10 @@ cdef inline int _unregisterProxy(_Element proxy) except -1:
 # temporarily make a node the root node of its document
 
 cdef xmlDoc* _fakeRootDoc(xmlDoc* c_base_doc, xmlNode* c_node) except NULL:
-    return _plainFakeRootDoc(c_base_doc=c_base_doc, c_node=c_node,
-                with_siblings=1, used_only=0)
+    return _plainFakeRootDoc(c_base_doc, c_node, with_siblings=True)
 
 cdef xmlDoc* _plainFakeRootDoc(xmlDoc* c_base_doc, xmlNode* c_node,
-                               bint with_siblings, bint used_only=1) except NULL:
+                               bint with_siblings, bint used_ns_only=False) except NULL:
     # build a temporary document that has the given node as root node
     # note that copy and original must not be modified during its lifetime!!
     # always call _destroyFakeDoc() after use!
@@ -102,7 +101,7 @@ cdef xmlDoc* _plainFakeRootDoc(xmlDoc* c_base_doc, xmlNode* c_node,
     c_doc  = _copyDoc(c_base_doc, 0)                   # non recursive!
     c_new_root = tree.xmlDocCopyNode(c_node, c_doc, 2) # non recursive!
     tree.xmlDocSetRootElement(c_doc, c_new_root)
-    _copyParentNamespaces(c_node, c_new_root, used_only)
+    _copyParentNamespaces(c_node, c_new_root, used_ns_only)
 
     c_new_root.children = c_node.children
     c_new_root.last = c_node.last
@@ -224,32 +223,26 @@ cdef int canDeallocateChildNodes(xmlNode* c_parent):
 ################################################################################
 # fix _Document references and namespaces when a node changes documents
 
-cdef void _copyParentNamespaces(xmlNode* c_from_node, xmlNode* c_to_node, bint used_only=1) nogil:
-    u"""Copy the namespaces of all ancestors of c_from_node to c_to_node that are used by c_to_node.
+cdef void _copyParentNamespaces(xmlNode* c_from_node, xmlNode* c_to_node,
+                                bint used_only=False) nogil:
+    """Copy the namespaces of all ancestors of c_from_node to c_to_node.
     """
     cdef xmlNode* c_parent
     cdef xmlNode* c_node
     cdef xmlNs* c_ns
     cdef xmlNs* c_new_ns
-    c_parent = c_from_node.parent
     cdef _nscache c_ns_cache = [NULL, 0, 0]
-    cdef _ns_update_map c_ns_entry
-    cdef bint should_copy = 0
+    c_parent = c_from_node.parent
 
     if used_only:
-        # Build up a cache for each of the ns prefixes used in the elements we will
-        # copy over, then use prescence in the cache as a basis for allowing the
-        # copy of the namespace.
+        # collect all ns prefixes used in the elements that we will copy over
         c_node = c_from_node.children
         tree.BEGIN_FOR_EACH_ELEMENT_FROM(c_from_node, c_node, 1)
         if c_node.ns is not NULL:
-            c_ns = NULL
             for c_ns_entry in c_ns_cache.ns_map[:c_ns_cache.last]:
                 if c_node.ns is c_ns_entry.old:
-                    c_ns = c_ns_entry.old
                     break
-
-            if c_ns is NULL:
+            else:
                 with gil:
                     _appendToNsCache(&c_ns_cache, c_node.ns, NULL)
         tree.END_FOR_EACH_ELEMENT_FROM(c_node)
@@ -258,14 +251,14 @@ cdef void _copyParentNamespaces(xmlNode* c_from_node, xmlNode* c_to_node, bint u
                         c_parent.type == tree.XML_DOCUMENT_NODE):
         c_new_ns = c_parent.nsDef
         while c_new_ns:
+            is_used = False
             if used_only:
-                should_copy = 0
                 for c_ns_entry in c_ns_cache.ns_map[:c_ns_cache.last]:
                     if c_new_ns is c_ns_entry.old:
-                        should_copy = 1
+                        is_used = True
                         break
 
-            if not used_only or should_copy:
+            if not used_only or is_used:
                 # libxml2 will check if the prefix is already defined
                 tree.xmlNewNs(c_to_node, c_new_ns.href, c_new_ns.prefix)
             c_new_ns = c_new_ns.next

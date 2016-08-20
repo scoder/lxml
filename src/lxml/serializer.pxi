@@ -147,7 +147,9 @@ cdef _tostring(_Element element, encoding, doctype, method,
         _raiseSerialisationError(error_result)
     return result
 
-cdef bytes _tostringC14N(element_or_tree, bint exclusive, bint with_comments, inclusive_ns_prefixes):
+cdef bytes _tostringC14N(
+        element_or_tree, bint exclusive, bint with_comments, bint used_ns_only,
+        inclusive_ns_prefixes):
     cdef xmlDoc* c_doc
     cdef xmlChar* c_buffer = NULL
     cdef int byte_count = -1
@@ -159,8 +161,8 @@ cdef bytes _tostringC14N(element_or_tree, bint exclusive, bint with_comments, in
     if isinstance(element_or_tree, _Element):
         _assertValidNode(<_Element>element_or_tree)
         doc = (<_Element>element_or_tree)._doc
-        c_doc = _plainFakeRootDoc(c_base_doc=doc._c_doc, c_node=(<_Element>element_or_tree)._c_node,
-                        with_siblings=0, used_only=1)
+        c_doc = _plainFakeRootDoc(doc._c_doc, (<_Element>element_or_tree)._c_node,
+                                  with_siblings=False, used_ns_only=used_ns_only)
     else:
         doc = _documentOrRaise(element_or_tree)
         _assertValidDoc(doc)
@@ -235,7 +237,7 @@ cdef void _writeNodeToBuffer(tree.xmlOutputBuffer* c_buffer,
         if not c_nsdecl_node:
             c_buffer.error = xmlerror.XML_ERR_NO_MEMORY
             return
-        _copyParentNamespaces(c_from_node=c_node, c_to_node=c_nsdecl_node, used_only=0)
+        _copyParentNamespaces(c_node, c_nsdecl_node)
 
         c_nsdecl_node.parent = c_node.parent
         c_nsdecl_node.children = c_node.children
