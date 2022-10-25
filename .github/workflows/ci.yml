@@ -21,7 +21,7 @@ jobs:
       matrix:
         # Tests [amd64]
         #
-        os: [ubuntu-18.04, macos-10.15]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version:
           - 2.7
           - 3.5
@@ -36,27 +36,27 @@ jobs:
 
         include:
           # Temporary - Allow failure on all 3.11-dev jobs until beta comes out.
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: 3.11-dev
             allowed_failure: true
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: 3.11-dev
             env: {STATIC_DEPS: true, WITH_REFNANNY: true}
             extra_hash: "-refnanny"
             allowed_failure: true
           # Coverage setup
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: 3.9
             env: { COVERAGE: true }
             extra_hash: "-coverage"
             allowed_failure: true   # shouldn't fail but currently does...
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: 3.9
             env: { STATIC_DEPS: false, EXTRA_DEPS: "docutils pygments sphinx sphinx-rtd-theme" }
             extra_hash: "-docs"
             allowed_failure: true   # shouldn't fail but currently does...
           # Old library setup with minimum version requirements
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: 3.9
             env: {
               STATIC_DEPS: true,
@@ -68,19 +68,24 @@ jobs:
           # Ubuntu sub-jobs:
           # ================
           # Pypy
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: pypy-2.7
             env: { STATIC_DEPS: false }
             allowed_failure: true
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: pypy-3.7
             env: { STATIC_DEPS: false }
             allowed_failure: true
 
           # MacOS sub-jobs
           # ==============
-          - os: macos-10.15
+          - os: macos-latest
             allowed_failure: true   # Unicode parsing fails in Py3
+
+          # Windows sub-jobs
+          # ==============
+          - os: windows-latest
+            env: [{ STATIC_DEPS: true }]  # always static
 
     # This defaults to 360 minutes (6h) which is way too long and if a test gets stuck, it can block other pipelines.
     # From testing, the runs tend to take ~3 minutes, so a limit of 20 minutes should be enough. This can always be
@@ -103,12 +108,12 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 1
 
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -129,7 +134,7 @@ jobs:
         run: make html
 
       - name: Upload docs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: ${{ matrix.extra_hash == '-docs' }}
         with:
           name: website_html
@@ -137,14 +142,14 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: pycoverage_html
           path: coverage*
           if-no-files-found: ignore
 
       - name: Upload Wheel
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: ${{ matrix.env.STATIC_DEPS == 'true' && env.COVERAGE == 'false' }}
         with:
           name: wheels-${{ runner.os }}
