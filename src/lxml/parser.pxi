@@ -1538,7 +1538,7 @@ _XML_DEFAULT_PARSE_OPTIONS = (
     xmlparser.XML_PARSE_NONET   |
     xmlparser.XML_PARSE_COMPACT |
     xmlparser.XML_PARSE_BIG_LINES
-    )
+)
 
 cdef class XMLParser(_FeedParser):
     """XMLParser(self, encoding=None, attribute_defaults=False, dtd_validation=False, load_dtd=False, no_network=True, ns_clean=False, recover=False, schema: XMLSchema =None, huge_tree=False, remove_blank_text=False, resolve_entities=True, remove_comments=False, remove_pis=False, strip_cdata=True, collect_ids=True, target=None, compact=True)
@@ -1570,9 +1570,12 @@ cdef class XMLParser(_FeedParser):
     - remove_pis         - discard processing instructions
     - strip_cdata        - replace CDATA sections by normal text content (default: True)
     - compact            - save memory for short text content (default: True)
-    - collect_ids        - use a hash table of XML IDs for fast access (default: True, always True with DTD validation)
+    - collect_ids        - use a hash table of XML IDs for fast access
+                           (default: True, always True with DTD validation)
     - huge_tree          - disable security restrictions and support very deep trees
-                           and very long text content (only affects libxml2 2.7+)
+                           and very long text content
+    - decompress         - automatically decompress gzip input
+                           (default: True, disabling only affects libxml2 2.14+)
 
     Other keyword arguments:
 
@@ -1593,7 +1596,7 @@ cdef class XMLParser(_FeedParser):
                  ns_clean=False, recover=False, XMLSchema schema=None,
                  huge_tree=False, remove_blank_text=False, resolve_entities='internal',
                  remove_comments=False, remove_pis=False, strip_cdata=True,
-                 collect_ids=True, target=None, compact=True):
+                 collect_ids=True, target=None, compact=True, decompress=True):
         cdef int parse_options
         cdef bint resolve_external = True
         parse_options = _XML_DEFAULT_PARSE_OPTIONS
@@ -1619,11 +1622,17 @@ cdef class XMLParser(_FeedParser):
         if not compact:
             parse_options = parse_options ^ xmlparser.XML_PARSE_COMPACT
         if not resolve_entities:
+            if not (parse_options & xmlparser.XML_PARSE_DTDLOAD):
+                parse_options = parse_options | xmlparser.XML_PARSE_NO_XXE
             parse_options = parse_options ^ xmlparser.XML_PARSE_NOENT
         elif resolve_entities == 'internal':
             resolve_external = False
+            if not (parse_options & xmlparser.XML_PARSE_DTDLOAD):
+                parse_options = parse_options | xmlparser.XML_PARSE_NO_XXE
         if not strip_cdata:
             parse_options = parse_options ^ xmlparser.XML_PARSE_NOCDATA
+        if decompress:
+            parse_options = parse_options | xmlparser.XML_PARSE_UNZIP
 
         _BaseParser.__init__(self, parse_options, False, schema,
                              remove_comments, remove_pis, strip_cdata,
@@ -1679,7 +1688,7 @@ cdef class ETCompatXMLParser(XMLParser):
                  ns_clean=False, recover=False, schema=None,
                  huge_tree=False, remove_blank_text=False, resolve_entities=True,
                  remove_comments=True, remove_pis=True, strip_cdata=True,
-                 target=None, compact=True):
+                 target=None, compact=True, decompress=True):
         XMLParser.__init__(self,
                            attribute_defaults=attribute_defaults,
                            dtd_validation=dtd_validation,
@@ -1696,7 +1705,9 @@ cdef class ETCompatXMLParser(XMLParser):
                            strip_cdata=strip_cdata,
                            target=target,
                            encoding=encoding,
-                           schema=schema)
+                           schema=schema,
+                           decompress=decompress,
+                           )
 
 # ET 1.2 compatible name
 XMLTreeBuilder = ETCompatXMLParser
@@ -1764,7 +1775,9 @@ cdef class HTMLParser(_FeedParser):
     - default_doctype    - add a default doctype even if it is not found in the HTML (default: True)
     - collect_ids        - use a hash table of XML IDs for fast access (default: True)
     - huge_tree          - disable security restrictions and support very deep trees
-                           and very long text content (only affects libxml2 2.7+)
+                           and very long text content
+    - decompress         - automatically decompress gzip input
+                           (default: True, disabling only affects libxml2 2.14+)
 
     Other keyword arguments:
 
@@ -1779,7 +1792,7 @@ cdef class HTMLParser(_FeedParser):
                  remove_comments=False, remove_pis=False, strip_cdata=_UNUSED,
                  no_network=True, target=None, XMLSchema schema=None,
                  recover=True, compact=True, default_doctype=True,
-                 collect_ids=True, huge_tree=False):
+                 collect_ids=True, huge_tree=False, decompress=True):
         cdef int parse_options
         parse_options = _HTML_DEFAULT_PARSE_OPTIONS
         if remove_blank_text:
@@ -1794,6 +1807,8 @@ cdef class HTMLParser(_FeedParser):
             parse_options = parse_options ^ htmlparser.HTML_PARSE_NODEFDTD
         if huge_tree:
             parse_options = parse_options | xmlparser.XML_PARSE_HUGE
+        if decompress:
+            parse_options = parse_options | xmlparser.XML_PARSE_UNZIP
 
         if strip_cdata is not _UNUSED:
             import warnings

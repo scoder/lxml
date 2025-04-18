@@ -223,6 +223,12 @@ cdef extern from "libxml/parser.h" nogil:
         XML_PARSE_IGNORE_ENC = 2097152 # ignore internal document encoding hint
         # libxml2 2.9.0+ only:
         XML_PARSE_BIG_LINES = 4194304 # Store big lines numbers in text PSVI field
+        # libxml2 2.13.0+ only:
+        XML_PARSE_NO_XXE = 8388608  # disable loading of external content
+        # libxml2 2.14.0+ only:
+        XML_PARSE_UNZIP = 16777216  # allow compressed content
+        XML_PARSE_NO_SYS_CATALOG = 33554432  # disable global system catalog
+        XML_PARSE_CATALOG_PI = 67108864  # allow catalog PIs
 
     cdef void xmlInitParser()
     cdef void xmlCleanupParser()
