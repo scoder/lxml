@@ -5,22 +5,22 @@
 #include "Python.h"
 #ifndef PY_VERSION_HEX
 #  error the development package of Python (header files etc.) is not installed correctly
-#elif PY_VERSION_HEX < 0x03060000
-#  error this version of lxml requires Python 3.6 or later
+#elif PY_VERSION_HEX < 0x03080000
+#  error this version of lxml requires Python 3.8 or later
 #endif
 
 #include "libxml/xmlversion.h"
 #ifndef LIBXML_VERSION
 #  error the development package of libxml2 (header files etc.) is not installed correctly
-#elif LIBXML_VERSION < 20700
-#  error minimum required version of libxml2 is 2.7.0
+#elif LIBXML_VERSION < 20902
+#  error minimum required version of libxml2 is 2.9.2
 #endif
 
 #include "libxslt/xsltconfig.h"
 #ifndef LIBXSLT_VERSION
 #  error the development package of libxslt (header files etc.) is not installed correctly
-#elif LIBXSLT_VERSION < 10123
-#  error minimum required version of libxslt is 1.1.23
+#elif LIBXSLT_VERSION < 10127
+#  error minimum required version of libxslt is 1.1.27
 #endif
 
 
