@@ -47,6 +47,11 @@ class UnicodeTestCase(HelperTestCase):
         self.assertEqual('😄', p.text)
         self.assertEqual(1, len(p.text))
 
+    def test_long_nonbmp_unicode_sequence(self):
+        bad="\U0001f468"*8192
+        p = etree.fromstring(f"<p>{bad}</p>")
+        self.assertEqual(8192, len(p.text))
+
     def test_unicode_xml_broken(self):
         uxml = ('<?xml version="1.0" encoding="UTF-8"?>' +
                 '<p>%s</p>' % uni)
