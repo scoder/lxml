@@ -45,9 +45,9 @@ cdef _Document _documentOrRaise(object input):
     elif isinstance(input, _Document):
         doc = <_Document>input
     else:
-        raise TypeError, f"Invalid input object: {python._fqtypename(input).decode('utf8')}"
+        raise TypeError, f"Invalid input object: {python._fqtypename(input)}"
     if doc is None:
-        raise ValueError, f"Input object has no document: {python._fqtypename(input).decode('utf8')}"
+        raise ValueError, f"Input object has no document: {python._fqtypename(input)}"
     _assertValidDoc(doc)
     return doc
 
@@ -65,10 +65,10 @@ cdef _Element _rootNodeOrRaise(object input):
     elif isinstance(input, _Document):
         node = (<_Document>input).getroot()
     else:
-        raise TypeError, f"Invalid input object: {python._fqtypename(input).decode('utf8')}"
+        raise TypeError, f"Invalid input object: {python._fqtypename(input)}"
     if (node is None or not node._c_node or
             node._c_node.type != tree.XML_ELEMENT_NODE):
-        raise ValueError, f"Input object is not an XML element: {python._fqtypename(input).decode('utf8')}"
+        raise ValueError, f"Input object is not an XML element: {python._fqtypename(input)}"
     _assertValidNode(node)
     return node
 
@@ -317,7 +317,7 @@ cdef _initNodeAttributes(xmlNode* c_node, _Document doc, attrib, dict extra):
     cdef bint is_html
     cdef xmlNs* c_ns
     if attrib is not None and not hasattr(attrib, 'items'):
-        raise TypeError, f"Invalid attribute dictionary: {python._fqtypename(attrib).decode('utf8')}"
+        raise TypeError, f"Invalid attribute dictionary: {python._fqtypename(attrib)}"
 
     has_attrib = bool(attrib)
     has_extra = bool(extra)

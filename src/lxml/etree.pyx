@@ -3639,7 +3639,7 @@ def tostring(element_or_tree, *, encoding=None, method="xml",
                          encoding, doctype, method, write_declaration, 1,
                          pretty_print, with_tail, is_standalone)
     else:
-        raise TypeError, f"Type '{python._fqtypename(element_or_tree).decode('utf8')}' cannot be serialized."
+        raise TypeError, f"Type '{python._fqtypename(element_or_tree)}' cannot be serialized."
 
 
 

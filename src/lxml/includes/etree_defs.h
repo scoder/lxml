@@ -5,6 +5,8 @@
 #include "Python.h"
 #ifndef PY_VERSION_HEX
 #  error the development package of Python (header files etc.) is not installed correctly
+#elif defined(Py_LIMITED_API) && Py_LIMITED_API < 0x030c0000
+#  error building this version of lxml in the Limited API requires Python 3.12 or later
 #elif PY_VERSION_HEX < 0x03090000
 #  error this version of lxml requires Python 3.9 or later
 #endif
@@ -86,7 +88,7 @@ static PyObject* PyBytes_FromFormat(const char* format, ...) {
 #  endif
 #endif
 
-#if PY_VERSION_HEX >= 0x030B00A1
+#if PY_VERSION_HEX >= 0x030B00A1 || defined(Py_LIMITED_API)
 /* Python 3.12 doesn't have wstr Unicode strings any more. */
 #undef PyUnicode_GET_DATA_SIZE
 #define PyUnicode_GET_DATA_SIZE(ustr)  (0)
@@ -201,11 +203,29 @@ long _ftol2( double dblSource ) { return _ftol( dblSource ); }
 #define unlikely_condition(x) (x)
 #endif /* __GNUC__ */
 
-#ifndef Py_TYPE
-  #define Py_TYPE(ob)   (((PyObject*)(ob))->ob_type)
-#endif
 
-#define _fqtypename(o)  ((Py_TYPE(o))->tp_name)
+#if defined(Py_LIMITED_API)
+    #define __lxml_typename(o)    PyType_GetName(Py_TYPE(o))
+    #define __lxml_fqtypename(o)  PyType_GetQualName(Py_TYPE(o))
+#else
+    #ifndef Py_TYPE
+    #define Py_TYPE(ob)   (((PyObject*)(ob))->ob_type)
+    #endif
+    static CYTHON_INLINE PyObject* __lxml_typename(PyObject* o) {
+        const char* c_name = (Py_TYPE(o))->tp_name;
+        const char* c_typename = c_name;
+        const char* c_pos = c_name;
+        while (*c_pos != '\0') {
+            if (*(c_pos++) == '.')
+                c_typename = c_pos;
+        }
+        return PyUnicode_DecodeUTF8(c_typename, c_pos - c_typename, NULL);
+    }
+    static CYTHON_INLINE PyObject* __lxml_fqtypename(PyObject* o) {
+        const char* c_name = (Py_TYPE(o))->tp_name;
+        return PyUnicode_DecodeUTF8(c_name, strlen(c_name), NULL);
+    }
+#endif
 
 #define lxml_malloc(count, item_size) \
     (unlikely_condition((size_t)(count) > (size_t) (PY_SSIZE_T_MAX / item_size)) ? NULL : \

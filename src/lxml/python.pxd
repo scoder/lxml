@@ -17,12 +17,19 @@ cdef extern from "Python.h":
       #undef PyUnicode_GET_SIZE
       #define PyUnicode_GET_SIZE(s)  (0)
     #endif
+
+    #if defined(Py_LIMITED_API)
+      #define LXML_IN_LIMITED_API 1
+    #else
+      #define LXML_IN_LIMITED_API 0
+    #endif
     """
 
     ctypedef struct PyObject
     cdef const Py_ssize_t PY_SSIZE_T_MIN
     cdef const Py_ssize_t PY_SSIZE_T_MAX
     cdef const int PY_VERSION_HEX
+    cdef const bint IN_LIMITED_API "LXML_IN_LIMITED_API"
 
     cdef void Py_INCREF(object o)
     cdef void Py_DECREF(object o)
@@ -131,7 +138,8 @@ cdef extern from "etree_defs.h": # redefines some functions as macros
     cdef void lxml_free(void* mem)
     cdef void* lxml_unpack_xmldoc_capsule(object capsule, bint* is_owned) except? NULL
     cdef bint _isString(object obj)
-    cdef const_char* _fqtypename(object t)
+    cdef str _typename "__lxml_typename" (object t)
+    cdef str _fqtypename "__lxml_fqtypename" (object t)
     cdef bint IS_PYPY
     cdef object PyOS_FSPath(object obj)
 

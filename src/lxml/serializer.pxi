@@ -783,7 +783,7 @@ cdef _FilelikeWriter _create_output_buffer(
             c_buffer = writer._createOutputBuffer(enchandler)
         else:
             raise TypeError(
-                f"File or filename expected, got '{python._fqtypename(f).decode('UTF-8')}'")
+                f"File or filename expected, got '{python._fqtypename(f)}'")
     except:
         tree.xmlCharEncCloseFunc(enchandler)
         raise
@@ -864,7 +864,7 @@ cdef _tofilelikeC14N(f, _Element element, bint exclusive, bint with_comments,
             elif error != -1:
                 error = xmlerror.XML_ERR_OK
         else:
-            raise TypeError(f"File or filename expected, got '{python._fqtypename(f).decode('UTF-8')}'")
+            raise TypeError(f"File or filename expected, got '{python._fqtypename(f)}'")
     finally:
         _destroyFakeDoc(c_base_doc, c_doc)
         if c_inclusive_ns_prefixes is not NULL:

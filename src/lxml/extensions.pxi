@@ -603,7 +603,7 @@ cdef xpath.xmlXPathObject* _wrapXPathObject(object obj, _Document doc,
             xpath.xmlXPathFreeNodeSet(resultSet)
             raise
     else:
-        raise XPathResultError, f"Unknown return type: {python._fqtypename(obj).decode('utf8')}"
+        raise XPathResultError, f"Unknown return type: {python._fqtypename(obj)}"
     return xpath.xmlXPathWrapNodeSet(resultSet)
 
 cdef object _unwrapXPathObject(xpath.xmlXPathObject* xpathObj,

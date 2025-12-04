@@ -2101,7 +2101,7 @@ cdef _Document _parseDocument(source, _BaseParser parser, base_url):
     if hasattr(source, 'read'):
         return _parseFilelikeDocument(source, url, parser)
 
-    raise TypeError, f"cannot parse from '{python._fqtypename(source).decode('UTF-8')}'"
+    raise TypeError, f"cannot parse from '{python._fqtypename(source)}'"
 
 cdef _Document _parseDocumentFromURL(url, _BaseParser parser):
     c_doc = _parseDocFromFile(url, parser)

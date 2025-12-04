@@ -47,15 +47,6 @@ cdef tuple IGNORABLE_ERRORS = (ValueError, TypeError)
 cdef object is_special_method = re.compile('__.*__$').match
 
 
-cdef object _typename(object t):
-    cdef const_char* c_name
-    c_name = python._fqtypename(t)
-    s = cstring_h.strrchr(c_name, c'.')
-    if s is not NULL:
-        c_name = s + 1
-    return pyunicode(<const_xmlChar*>c_name)
-
-
 # namespace/name for "pytype" hint attribute
 cdef object PYTYPE_NAMESPACE
 cdef bytes PYTYPE_NAMESPACE_UTF8
@@ -230,7 +221,7 @@ cdef class ObjectifiedElement(ElementBase):
         # properties are looked up /after/ __setattr__, so we must emulate them
         if tag == 'text' or tag == 'pyval':
             # read-only !
-            raise TypeError, f"attribute '{tag}' of '{_typename(self)}' objects is not writable"
+            raise TypeError, f"attribute '{tag}' of '{python._typename(self)}' objects is not writable"
         elif tag == 'tail':
             cetree.setTailText(self._c_node, value)
             return
@@ -496,7 +487,7 @@ cdef _setElementValue(_Element element, value):
             pytype_name = "str"
             py_type = <PyType>_PYTYPE_DICT.get(pytype_name)
         else:
-            pytype_name = _typename(value)
+            pytype_name = python._typename(value)
             py_type = <PyType>_PYTYPE_DICT.get(pytype_name)
             if py_type is not None:
                 value = py_type.stringify(value)
@@ -1192,7 +1183,7 @@ cdef unicode _xml_float(value):
     return unicode(repr(value))
 
 cdef _pytypename(obj):
-    return "str" if python._isString(obj) else _typename(obj)
+    return "str" if python._isString(obj) else python._typename(obj)
 
 def pytypename(obj):
     """pytypename(obj)
@@ -1348,7 +1339,7 @@ cdef class _ObjectifyElementMakerCaller:
                     # keyword arguments in attrib take precedence
                     if name in attrib:
                         continue
-                    pytype = _PYTYPE_DICT.get(_typename(value))
+                    pytype = _PYTYPE_DICT.get(python._typename(value))
                     if pytype is not None:
                         value = (<PyType>pytype).stringify(value)
                     elif not python._isString(value):
@@ -1358,8 +1349,8 @@ cdef class _ObjectifyElementMakerCaller:
                 if pytype_name is not None:
                     # concatenation always makes the result a string
                     has_string_value = True
-                pytype_name = _typename(child)
-                pytype = _PYTYPE_DICT.get(_typename(child))
+                pytype_name = python._typename(child)
+                pytype = _PYTYPE_DICT.get(python._typename(child))
                 if pytype is not None:
                     _add_text(element, (<PyType>pytype).stringify(child))
                 else:
@@ -1500,7 +1491,7 @@ cdef object _dump(_Element element, int indent):
                 value = None
             else:
                 value = repr(value)
-    result = f"{indentstr}{element.tag} = {value} [{_typename(element)}]\n"
+    result = f"{indentstr}{element.tag} = {value} [{python._typename(element)}]\n"
     xsi_ns    = "{%s}" % XML_SCHEMA_INSTANCE_NS
     pytype_ns = "{%s}" % PYTYPE_NAMESPACE
     for name, value in sorted(cetree.iterattributes(element, 3)):

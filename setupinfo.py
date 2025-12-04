@@ -126,6 +126,10 @@ def ext_modules(static_include_dirs, static_library_dirs,
     _define_macros = define_macros()
     _libraries = libraries()
 
+    limited_api = {}
+    if OPTION_LIMITED_API:
+        limited_api['py_limited_api'] = True
+
     if _library_dirs:
         message = "Building against libxml2/libxslt in "
         if len(_library_dirs) > 1:
@@ -169,6 +173,7 @@ def ext_modules(static_include_dirs, static_library_dirs,
                 library_dirs = None if is_py else _library_dirs,
                 runtime_library_dirs = None if is_py else runtime_library_dirs,
                 libraries = None if is_py else _libraries,
+                **limited_api,
             ))
     if CYTHON_INSTALLED and OPTION_WITH_CYTHON_GDB:
         for ext in result:
@@ -336,6 +341,13 @@ def define_macros():
         macros.append(('PYREX_WITHOUT_ASSERTIONS', None))
     if OPTION_WITHOUT_THREADING:
         macros.append(('WITHOUT_THREADING', None))
+    if OPTION_LIMITED_API:
+        if OPTION_LIMITED_API.count('.') != 1:
+            raise RuntimeError(
+                f"Invalid format for '--lxml-limited-api' option, "
+                f"expected Python version like '3.12', got {OPTION_LIMITED_API!r}")
+        pymajor, pyminor = OPTION_LIMITED_API.split('.')
+        macros.append(('Py_LIMITED_API', f"0x{int(pymajor):02x}{int(pyminor):02x}0000"))
     if OPTION_WITH_REFNANNY:
         macros.append(('CYTHON_REFNANNY', None))
     if OPTION_WITH_UNICODE_STRINGS:
@@ -544,6 +556,7 @@ OPTION_WITH_ZLIB = not has_option('without-zlib')
 if OPTION_WITHOUT_CYTHON:
     CYTHON_INSTALLED = False
 OPTION_STATIC = staticbuild or has_option('static')
+OPTION_LIMITED_API = option_value('lxml-limited-api')
 OPTION_DEBUG_GCC = has_option('debug-gcc')
 OPTION_SHOW_WARNINGS = has_option('warnings')
 OPTION_AUTO_RPATH = has_option('auto-rpath')
