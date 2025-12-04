@@ -20,10 +20,10 @@ skip = [
     # Reduce job load and HTTP hit rate on library servers.
     "cp39-*_ppc64le",
     "cp310-*_ppc64le",
-    "cp311-*_ppc64le",
     "cp39-*_s390x",
 ]
 #test-command = "python {package}/test.py -vv"
+test-command = "python -c 'import lxml.etree, lxml.objectify, lxml.html'"
 
 [tool.cibuildwheel.linux]
 #archs = ["x86_64", "aarch64", "i686", "ppc64le", "s390x", "armv7l"]
@@ -54,6 +54,15 @@ environment.CFLAGS = "-O3 -g1 -pipe -fPIC -flto -march=core2 -mtune=generic -mno
 select = "*linux_aarch64"
 inherit.environment = "append"
 environment.CFLAGS = "-O3 -g1 -pipe -fPIC -flto -march=armv8-a -mtune=cortex-a72"
+
+[[tool.cibuildwheel.overrides]]
+select = "*linux_armv7l *linux_ppc64le *linux_riscv64"
+inherit.environment = "append"
+environment.LXML_LIMITED_API = "3.12"
+inherit.test-requires = "append"
+test-requires = ["abi3audit>=0.0.22"]
+inherit.test-command = "append"
+test-command = ["abi3audit --strict --report {wheel}"]
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64", "x86"]
