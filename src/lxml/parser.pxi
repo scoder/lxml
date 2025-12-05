@@ -299,9 +299,9 @@ _pyucs4_encoding_name = _find_PyUCS4EncodingName()
 @cython.internal
 cdef class _FileReaderContext:
     cdef object _filelike
-    cdef object _encoding
-    cdef object _url
-    cdef object _bytes
+    cdef bytes _encoding
+    cdef bytes _url
+    cdef bytes _bytes
     cdef _ExceptionContext _exc_context
     cdef Py_ssize_t _bytes_read
     cdef const char* _c_url
@@ -311,7 +311,10 @@ cdef class _FileReaderContext:
         self._exc_context = exc_context
         self._filelike = filelike
         self._close_file_after_read = close_file
-        self._encoding = encoding
+        self._encoding = _utf8orNone(encoding)
+        if self._encoding is not None and self._encoding in (b'UTF-8', b'utf-8', b'UTF8', b'utf8'):
+            # We'll do the same thing below for None, just quicker.
+            self._encoding = None
         if url is not None:
             url = _encodeFilename(url)
             self._c_url = _cstr(url)
@@ -396,15 +399,15 @@ cdef class _FileReaderContext:
                 c_buffer += remaining
                 c_requested -= remaining
 
-                bytes_data = self._filelike.read(c_requested)
-                if isinstance(bytes_data, bytes):
-                    self._bytes = <bytes> bytes_data
-                elif isinstance(bytes_data, str):
+                data = self._filelike.read(c_requested)
+                if isinstance(data, bytes):
+                    self._bytes = <bytes> data
+                elif isinstance(data, str):
                     if self._encoding is None:
-                        self._bytes = (<str> bytes_data).encode('utf8')
+                        self._bytes = (<str> data).encode('utf8')
                     else:
                         self._bytes = python.PyUnicode_AsEncodedString(
-                            bytes_data, _cstr(self._encoding), NULL)
+                            data, _cstr(self._encoding), NULL)
                 else:
                     self._close_file()
                     raise TypeError, \
@@ -1282,8 +1285,7 @@ cdef class _BaseParser:
         finally:
             context.cleanup()
 
-    cdef xmlDoc* _parseDocFromFilelike(self, filelike, filename,
-                                       encoding) except NULL:
+    cdef xmlDoc* _parseDocFromFilelike(self, filelike, filename, encoding) except NULL:
         cdef _ParserContext context
         cdef _FileReaderContext file_context
         cdef xmlDoc* result
@@ -1968,7 +1970,7 @@ cdef xmlDoc* _parseDoc(text, filename, _BaseParser parser) except NULL:
         return _parseDoc_bytes(<bytes> text, filename, c_filename, parser)
     elif isinstance(text, unicode):
         if python.IN_LIMITED_API:
-            return parser._parseDocFromFilelike(StringIO(text), filename, None)
+            return parser._parseDocFromFilelike(StringIO(text), filename, b'utf-8')
         return _parseDoc_unicode(<unicode> text, filename, c_filename, parser)
     else:
         return _parseDoc_charbuffer(text, filename, c_filename, parser)
