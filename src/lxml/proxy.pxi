@@ -330,7 +330,6 @@ cdef int moveNodeToDocument(_Document doc, xmlDoc* c_source_doc,
     cdef xmlNode* c_node
     cdef xmlDoc* c_doc = doc._c_doc
     cdef tree.xmlAttr* c_attr
-    cdef char* c_name
     cdef _nscache c_ns_cache = [NULL, 0, 0]
     cdef xmlNs* c_del_ns_list = NULL
     cdef proxy_count = 0

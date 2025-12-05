@@ -3,7 +3,7 @@ from libc.string cimport const_char, const_uchar
 
 cdef extern from "lxml-version.h":
     # deprecated declaration, use etreepublic.pxd instead
-    cdef char* LXML_VERSION_STRING
+    cdef const char* LXML_VERSION_STRING
 
 cdef extern from "libxml/xmlversion.h":
     const char* xmlParserVersion
@@ -20,7 +20,7 @@ cdef extern from "libxml/xmlstring.h" nogil:
     cdef int xmlStrcasecmp(const xmlChar *str1, const xmlChar *str2)
     cdef const_xmlChar* xmlStrstr(const_xmlChar* str1, const_xmlChar* str2)
     cdef const_xmlChar* xmlStrchr(const_xmlChar* str1, xmlChar ch)
-    cdef const_xmlChar* _xcstr "(const xmlChar*)PyBytes_AS_STRING" (object s)
+    cdef const_xmlChar* _xcstr "(const xmlChar*)__Pyx_PyBytes_AsString" (object s)
 
 cdef extern from "libxml/encoding.h" nogil:
     ctypedef enum xmlCharEncoding:

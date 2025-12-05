@@ -3,7 +3,7 @@
 from lxml.includes cimport xinclude
 
 
-cdef class XIncludeError(LxmlError):
+class XIncludeError(LxmlError):
     """Error during XInclude processing.
     """
 

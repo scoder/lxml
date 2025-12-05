@@ -2,15 +2,15 @@
 from lxml.includes cimport schematron
 
 
-cdef class SchematronError(LxmlError):
+class SchematronError(LxmlError):
     """Base class of all Schematron errors.
     """
 
-cdef class SchematronParseError(SchematronError):
+class SchematronParseError(SchematronError):
     """Error while parsing an XML document as Schematron schema.
     """
 
-cdef class SchematronValidateError(SchematronError):
+class SchematronValidateError(SchematronError):
     """Error while validating an XML document with a Schematron schema.
     """
 
@@ -74,7 +74,6 @@ cdef class Schematron(_Validator):
         cdef _Document doc
         cdef _Element root_node
         cdef xmlNode* c_node
-        cdef char* c_href
         cdef schematron.xmlSchematronParserCtxt* parser_ctxt = NULL
         _Validator.__init__(self)
         if not config.ENABLE_SCHEMATRON:

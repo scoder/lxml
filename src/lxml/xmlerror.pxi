@@ -374,14 +374,14 @@ cdef class _ListErrorLog(_BaseErrorLog):
         Convenience method to get all fatal error messages.
         """
         return self.filter_from_level(ErrorLevels.FATAL)
-    
+
     def filter_from_errors(self):
         """filter_from_errors(self)
 
         Convenience method to get all error messages or worse.
         """
         return self.filter_from_level(ErrorLevels.ERROR)
-    
+
     def filter_from_warnings(self):
         """filter_from_warnings(self)
 
@@ -697,14 +697,14 @@ cdef void _connectGenericErrorLog(log, int c_domain=-1) noexcept:
 
 
 cdef void _receiveGenericError(void* c_log_handler, int c_domain,
-                               char* msg, cvarargs.va_list args) noexcept nogil:
+                               const char* msg, cvarargs.va_list args) noexcept nogil:
     # no Python objects here, may be called without thread context !
     cdef xmlerror.xmlError c_error
     cdef char* c_text
     cdef char* c_message
-    cdef char* c_element
-    cdef char* c_pos
-    cdef char* c_name_pos
+    cdef const char* c_element
+    cdef const char* c_pos
+    cdef const char* c_name_pos
     cdef char* c_str
     cdef int text_size, element_size, format_count, c_int
     if not __DEBUG or msg is NULL:

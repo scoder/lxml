@@ -740,7 +740,7 @@ cdef xmlNode* _createTextNode(xmlDoc* doc, value) except NULL:
     if isinstance(value, CDATA):
         c_text_node = tree.xmlNewCDataBlock(
             doc, _xcstr((<CDATA>value)._utf8_data),
-            python.PyBytes_GET_SIZE((<CDATA>value)._utf8_data))
+            len((<CDATA>value)._utf8_data))
     else:
         text = _utf8(value)
         c_text_node = tree.xmlNewDocText(doc, _xcstr(text))
@@ -808,10 +808,13 @@ cdef int _findChildSlice(
     if childcount == 0:
         c_start_node[0] = NULL
         c_length[0] = 0
-        if sliceobject.step is None:
+        step = sliceobject.step
+        if step is None:
             c_step[0] = 1
+        elif python.PyIndex_Check(step):
+            c_step[0] = <Py_ssize_t> step
         else:
-            python._PyEval_SliceIndex(sliceobject.step, c_step)
+            raise TypeError("slice indices must be integers or None or have an __index__ method")
         return 0
 
     python.PySlice_GetIndicesEx(
@@ -827,18 +830,18 @@ cdef int _findChildSlice(
 cdef bint _isFullSlice(slice sliceobject) except -1:
     """Conservative guess if this slice is a full slice as in ``s[:]``.
     """
-    cdef Py_ssize_t step = 0
+    cdef Py_ssize_t c_step = 0
     if sliceobject is None:
-        return 0
-    if sliceobject.start is None and \
-            sliceobject.stop is None:
-        if sliceobject.step is None:
-            return 1
-        python._PyEval_SliceIndex(sliceobject.step, &step)
-        if step == 1:
-            return 1
-        return 0
-    return 0
+        return False
+    if sliceobject.start is None and sliceobject.stop is None:
+        step = sliceobject.step
+        if step is None:
+            return True
+        elif python.PyIndex_Check(step):
+            return 1 == <Py_ssize_t> step
+        else:
+            raise TypeError("slice indices must be integers or None or have an __index__ method")
+    return False
 
 cdef _collectChildren(_Element element):
     cdef xmlNode* c_node
@@ -1022,7 +1025,7 @@ cdef inline bint _nsTagMatchesExactly(const_xmlChar* c_node_href,
     * c_name is NULL
     * its name string points to the same address (!) as c_name
     """
-    cdef char* c_href
+    cdef const char* c_href
     if c_qname.c_name is not NULL and c_qname.c_name is not c_node_name:
         return 0
     if c_qname.href is NULL:
@@ -1642,7 +1645,7 @@ cdef object _encodeFilenameUTF8(object filename):
     """Recode filename as UTF-8. Tries ASCII, local filesystem encoding and
     UTF-8 as source encoding.
     """
-    cdef char* c_filename
+    cdef const char* c_filename
     if filename is None:
         return None
     elif isinstance(filename, bytes):
@@ -1681,33 +1684,33 @@ cdef tuple _getNsTagWithEmptyNs(tag):
     return __getNsTag(tag, 1)
 
 cdef tuple __getNsTag(tag, bint empty_ns):
-    cdef char* c_tag
-    cdef char* c_ns_end
+    cdef const char* c_tag
+    cdef const char* c_ns_end
     cdef Py_ssize_t taglen
     cdef Py_ssize_t nslen
     cdef bytes ns = None
     # _isString() is much faster than isinstance()
     if not _isString(tag) and isinstance(tag, QName):
         tag = (<QName>tag).text
-    tag = _utf8(tag)
-    c_tag = _cstr(tag)
+    tag_utf8: bytes = _utf8(tag)
+    c_tag = _cstr(tag_utf8)
     if c_tag[0] == c'{':
         c_tag += 1
         c_ns_end = cstring_h.strchr(c_tag, c'}')
         if c_ns_end is NULL:
             raise ValueError, "Invalid tag name"
         nslen  = c_ns_end - c_tag
-        taglen = python.PyBytes_GET_SIZE(tag) - nslen - 2
+        taglen = len(tag_utf8) - nslen - 2
         if taglen == 0:
             raise ValueError, "Empty tag name"
         if nslen > 0:
             ns = <bytes>c_tag[:nslen]
         elif empty_ns:
             ns = b''
-        tag = <bytes>c_ns_end[1:taglen+1]
-    elif python.PyBytes_GET_SIZE(tag) == 0:
+        tag_utf8 = <bytes>c_ns_end[1:taglen+1]
+    elif len(tag_utf8) == 0:
         raise ValueError, "Empty tag name"
-    return ns, tag
+    return ns, tag_utf8
 
 cdef inline int _pyXmlNameIsValid(name_utf8):
     return _xmlNameIsValid(_xcstr(name_utf8)) and b':' not in name_utf8

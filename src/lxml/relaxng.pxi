@@ -15,15 +15,15 @@ cdef int _require_rnc2rng() except -1:
     return 0
 
 
-cdef class RelaxNGError(LxmlError):
+class RelaxNGError(LxmlError):
     """Base class for RelaxNG errors.
     """
 
-cdef class RelaxNGParseError(RelaxNGError):
+class RelaxNGParseError(RelaxNGError):
     """Error while parsing an XML document as RelaxNG.
     """
 
-cdef class RelaxNGValidateError(RelaxNGError):
+class RelaxNGValidateError(RelaxNGError):
     """Error while validating an XML document with a RelaxNG schema.
     """
 

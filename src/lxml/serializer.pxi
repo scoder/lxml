@@ -4,7 +4,7 @@ cdef object GzipFile
 from gzip import GzipFile
 
 
-cdef class SerialisationError(LxmlError):
+class SerialisationError(LxmlError):
     """A libxml2 error that occurred during serialisation.
     """
 
@@ -288,7 +288,7 @@ cdef void _writeDtdToBuffer(tree.xmlOutputBuffer* c_buffer,
                             int c_method, const_char* encoding) noexcept nogil:
     cdef tree.xmlDtd* c_dtd
     cdef xmlNode* c_node
-    cdef char* quotechar
+    cdef char quotechar
     c_dtd = c_doc.intSubset
     if not c_dtd or not c_dtd.name:
         return
@@ -323,13 +323,10 @@ cdef void _writeDtdToBuffer(tree.xmlOutputBuffer* c_buffer,
         tree.xmlOutputBufferWrite(c_buffer, 8, ' SYSTEM ')
 
     if sys_url:
-        if tree.xmlStrchr(sys_url, b'"'):
-            quotechar = '\''
-        else:
-            quotechar = '"'
-        tree.xmlOutputBufferWrite(c_buffer, 1, quotechar)
+        quotechar = c"'" if tree.xmlStrchr(sys_url, b'"') else c'"'
+        tree.xmlOutputBufferWrite(c_buffer, 1, &quotechar)
         tree.xmlOutputBufferWriteString(c_buffer, <const_char*>sys_url)
-        tree.xmlOutputBufferWrite(c_buffer, 1, quotechar)
+        tree.xmlOutputBufferWrite(c_buffer, 1, &quotechar)
 
     if (not c_dtd.entities and not c_dtd.elements and
            not c_dtd.attributes and not c_dtd.notations and
@@ -822,7 +819,7 @@ cdef _tofilelikeC14N(f, _Element element, bint exclusive, bint with_comments,
     cdef _FilelikeWriter writer = None
     cdef tree.xmlOutputBuffer* c_buffer
     cdef xmlChar **c_inclusive_ns_prefixes = NULL
-    cdef char* c_filename
+    cdef const char* c_filename
     cdef xmlDoc* c_base_doc
     cdef xmlDoc* c_doc
     cdef int bytes_count, error = 0

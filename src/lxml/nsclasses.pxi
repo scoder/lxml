@@ -1,10 +1,10 @@
 # module-level API for namespace implementations
 
-cdef class LxmlRegistryError(LxmlError):
+class LxmlRegistryError(LxmlError):
     """Base class of lxml registry errors.
     """
 
-cdef class NamespaceRegistryError(LxmlRegistryError):
+class NamespaceRegistryError(LxmlRegistryError):
     """Error registering a namespace extension.
     """
 
@@ -15,7 +15,7 @@ cdef class _NamespaceRegistry:
     cdef object _ns_uri
     cdef bytes _ns_uri_utf
     cdef dict _entries
-    cdef char* _c_ns_uri_utf
+    cdef const char* _c_ns_uri_utf
     def __cinit__(self, ns_uri):
         self._ns_uri = ns_uri
         if ns_uri is None:

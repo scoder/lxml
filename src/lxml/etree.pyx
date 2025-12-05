@@ -152,7 +152,7 @@ _initThreadLogging()
 
 # filename encoding
 cdef bytes _FILENAME_ENCODING = (sys.getfilesystemencoding() or sys.getdefaultencoding() or 'ascii').encode("UTF-8")
-cdef char* _C_FILENAME_ENCODING = _cstr(_FILENAME_ENCODING)
+cdef const char* _C_FILENAME_ENCODING = _cstr(_FILENAME_ENCODING)
 
 # set up some default namespace prefixes
 cdef dict _DEFAULT_NAMESPACE_PREFIXES = {
@@ -208,13 +208,14 @@ def register_namespace(prefix, uri):
 
 
 # Error superclass for ElementTree compatibility
-cdef class Error(Exception):
+class Error(Exception):
     pass
 
+
 # module level superclass for all exceptions
-cdef class LxmlError(Error):
-    """Main exception base class for lxml.  All other exceptions inherit from
-    this one.
+class LxmlError(Error):
+    """Main exception base class for lxml.
+    All other exceptions inherit from this one.
     """
     def __init__(self, message, error_log=None):
         super(_Error, self).__init__(message)
@@ -231,9 +232,11 @@ class LxmlSyntaxError(LxmlError, SyntaxError):
     """Base class for all syntax errors.
     """
 
-cdef class C14NError(LxmlError):
+
+class C14NError(LxmlError):
     """Error during C14N serialisation.
     """
+
 
 # version information
 cdef tuple __unpackDottedVersion(version):
@@ -2780,8 +2783,8 @@ cdef public class _ElementTagMatcher [ object LxmlElementTagMatcher,
     """
     cdef object _pystrings
     cdef int _node_type
-    cdef char* _href
-    cdef char* _name
+    cdef const char* _href
+    cdef const char* _name
     cdef _initTagMatch(self, tag):
         self._href = NULL
         self._name = NULL
@@ -3788,7 +3791,7 @@ include "xsltext.pxi"      # XSL extension elements
 ################################################################################
 # Validation
 
-cdef class DocumentInvalid(LxmlError):
+class DocumentInvalid(LxmlError):
     """Validation error.
 
     Raised by all document validators when their ``assertValid(tree)``

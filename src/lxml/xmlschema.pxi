@@ -2,15 +2,15 @@
 from lxml.includes cimport xmlschema
 
 
-cdef class XMLSchemaError(LxmlError):
+class XMLSchemaError(LxmlError):
     """Base class of all XML Schema errors
     """
 
-cdef class XMLSchemaParseError(XMLSchemaError):
+class XMLSchemaParseError(XMLSchemaError):
     """Error while parsing an XML document as XML Schema.
     """
 
-cdef class XMLSchemaValidateError(XMLSchemaError):
+class XMLSchemaValidateError(XMLSchemaError):
     """Error while validating an XML document with an XML Schema.
     """
 

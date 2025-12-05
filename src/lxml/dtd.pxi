@@ -1,15 +1,16 @@
 # support for DTD validation
 from lxml.includes cimport dtdvalid
 
-cdef class DTDError(LxmlError):
+
+class DTDError(LxmlError):
     """Base class for DTD errors.
     """
 
-cdef class DTDParseError(DTDError):
+class DTDParseError(DTDError):
     """Error while parsing a DTD.
     """
 
-cdef class DTDValidateError(DTDError):
+class DTDValidateError(DTDError):
     """Error while validating an XML document with a DTD.
     """
 

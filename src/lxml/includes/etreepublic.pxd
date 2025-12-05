@@ -4,7 +4,7 @@ from lxml.includes cimport tree
 from lxml.includes.tree cimport const_xmlChar
 
 cdef extern from "lxml-version.h":
-    cdef char* LXML_VERSION_STRING
+    cdef const char* LXML_VERSION_STRING
 
 cdef extern from "etree_defs.h":
     # test if c_node is considered an Element (i.e. Element, Comment, etc.)
@@ -157,8 +157,8 @@ cdef extern from "etree_api.h":
     # iterators (DEPRECATED API, don't use in new code!)
 
     cdef class lxml.etree._ElementTagMatcher [ object LxmlElementTagMatcher ]:
-        cdef char* _href
-        cdef char* _name
+        cdef const char* _href
+        cdef const char* _name
 
     # store "{ns}tag" (or None) filter for this matcher or element iterator
     # ** unless _href *and* _name are set up 'by hand', this function *must*
