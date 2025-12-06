@@ -18,9 +18,17 @@ skip = [
     "pp*-manylinux_i686",
     "*-musllinux_i686",
     # Reduce job load and HTTP hit rate on library servers.
+    "cp39-*_s390x",
+    # abi3 wheels start at Py3.12.
     "cp39-*_ppc64le",
     "cp310-*_ppc64le",
-    "cp39-*_s390x",
+    "cp311-*_ppc64le",
+    "cp39-*_armv7l",
+    "cp310-*_armv7l",
+    "cp311-*_armv7l",
+    "cp39-*_riscv64",
+    "cp310-*_riscv64",
+    "cp311-*_riscv64",
 ]
 #test-command = "python {package}/test.py -vv"
 #test-command = "python -c 'import lxml.etree, lxml.objectify, lxml.html'"
