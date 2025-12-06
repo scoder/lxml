@@ -358,7 +358,13 @@ cdef class _FileReaderContext:
     cdef xmlDoc* _readDoc(self, xmlparser.xmlParserCtxt* ctxt, int options) noexcept:
         cdef xmlDoc* result
         cdef void* c_callback_context = <python.PyObject*> self
-        cdef const char* c_encoding = _cstr(self._encoding) if self._encoding is not None else NULL
+        cdef const char* c_encoding
+
+        if self._encoding is not None:
+            c_encoding = _cstr(self._encoding)
+        else:
+            self._bytes = self._readBytes(16)
+            self._bytes_read = _detectBOMEncoding(self._bytes, len(self._bytes), &c_encoding)
 
         orig_options = ctxt.options
         with nogil:
@@ -383,6 +389,21 @@ cdef class _FileReaderContext:
         finally:
             return result  # swallow any exceptions
 
+    cdef bytes _readBytes(self, count):
+        data = self._filelike.read(count)
+        if isinstance(data, bytes):
+            return <bytes> data
+        elif isinstance(data, str):
+            if self._encoding is None:
+                return (<str> data).encode('utf8')
+            else:
+                return python.PyUnicode_AsEncodedString(
+                    data, _cstr(self._encoding), NULL)
+        else:
+            self._close_file()
+            raise TypeError, \
+                "reading from file-like objects must return byte strings or unicode strings"
+
     cdef int copyToBuffer(self, char* c_buffer, int c_requested) noexcept:
         cdef int c_byte_count = 0
         cdef const char* c_start
@@ -399,21 +420,8 @@ cdef class _FileReaderContext:
                 c_buffer += remaining
                 c_requested -= remaining
 
-                data = self._filelike.read(c_requested)
-                if isinstance(data, bytes):
-                    self._bytes = <bytes> data
-                elif isinstance(data, str):
-                    if self._encoding is None:
-                        self._bytes = (<str> data).encode('utf8')
-                    else:
-                        self._bytes = python.PyUnicode_AsEncodedString(
-                            data, _cstr(self._encoding), NULL)
-                else:
-                    self._close_file()
-                    raise TypeError, \
-                        "reading from file-like objects must return byte strings or unicode strings"
-
-                remaining = len(self._bytes)
+                data = self._bytes = self._readBytes(c_requested)
+                remaining = len(data)
                 if remaining == 0:
                     self._bytes_read = -1
                     self._close_file()
@@ -421,7 +429,7 @@ cdef class _FileReaderContext:
                 self._bytes_read = 0
 
             if c_requested > 0:
-                c_start = _cstr(self._bytes) + self._bytes_read
+                c_start = _cstr(data) + self._bytes_read
                 cstring_h.memcpy(c_buffer, c_start, c_requested)
                 c_byte_count += c_requested
                 self._bytes_read += c_requested
@@ -1206,29 +1214,12 @@ cdef class _BaseParser:
         context = self._getParserContext()
         context.prepare()
         try:
-            if self._default_encoding is None:
-                c_encoding = NULL
-                # libxml2 (at least 2.9.3) does not recognise UTF-32 BOMs
-                # NOTE: limit to problematic cases because it changes character offsets
-                if c_len >= 4 and (c_text[0] == b'\xFF' and c_text[1] == b'\xFE' and
-                                   c_text[2] == 0 and c_text[3] == 0):
-                    c_encoding = "UTF-32LE"
-                    c_text += 4
-                    c_len -= 4
-                elif c_len >= 4 and (c_text[0] == 0 and c_text[1] == 0 and
-                                     c_text[2] == b'\xFE' and c_text[3] == b'\xFF'):
-                    c_encoding = "UTF-32BE"
-                    c_text += 4
-                    c_len -= 4
-                else:
-                    # no BOM => try to determine encoding
-                    enc = tree.xmlDetectCharEncoding(<const_xmlChar*>c_text, c_len)
-                    if enc == tree.XML_CHAR_ENCODING_UCS4LE:
-                        c_encoding = 'UTF-32LE'
-                    elif enc == tree.XML_CHAR_ENCODING_UCS4BE:
-                        c_encoding = 'UTF-32BE'
-            else:
+            if self._default_encoding is not None:
                 c_encoding = _cstr(self._default_encoding)
+            else:
+                bom_offset = _detectBOMEncoding(c_text, c_len, &c_encoding)
+                c_text += bom_offset
+                c_len -= bom_offset
 
             pctxt = context._c_ctxt
             orig_options = pctxt.options
@@ -1255,15 +1246,13 @@ cdef class _BaseParser:
         cdef _ParserContext context
         cdef xmlDoc* result
         cdef xmlparser.xmlParserCtxt* pctxt
-        cdef const char* c_encoding
+        cdef const char* c_encoding = NULL
         result = NULL
 
         context = self._getParserContext()
         context.prepare()
         try:
-            if self._default_encoding is None:
-                c_encoding = NULL
-            else:
+            if self._default_encoding is not None:
                 c_encoding = _cstr(self._default_encoding)
 
             pctxt = context._c_ctxt
@@ -1390,6 +1379,33 @@ cdef void _initSaxDocument(void* ctxt) noexcept with gil:
                 # already initialised but empty => clear
                 tree.xmlHashFree(c_doc.ids, NULL)
                 c_doc.ids = NULL
+
+
+cdef int _detectBOMEncoding(const char* c_text, int c_len, const char** c_encoding):
+    """Detect the text encoding and return the BOM length to skip, if any."""
+    # libxml2 (at least 2.9.3) does not recognise UTF-32 BOMs
+    # NOTE: limit to problematic cases because it changes character offsets
+    cdef const char* c_enc = NULL
+    cdef int offset = 0
+    if c_len >= 4 and (c_text[0] == b'\xFF' and c_text[1] == b'\xFE' and
+                            c_text[2] == 0 and c_text[3] == 0):
+        c_enc = "UTF-32LE"
+        offset = 4
+    elif c_len >= 4 and (c_text[0] == 0 and c_text[1] == 0 and
+                            c_text[2] == b'\xFE' and c_text[3] == b'\xFF'):
+        c_enc = "UTF-32BE"
+        offset = 4
+    else:
+        # no BOM => try to determine encoding
+        enc = tree.xmlDetectCharEncoding(<const_xmlChar*>c_text, c_len)
+        if enc == tree.XML_CHAR_ENCODING_UCS4LE:
+            c_enc = 'UTF-32LE'
+        elif enc == tree.XML_CHAR_ENCODING_UCS4BE:
+            c_enc = 'UTF-32BE'
+
+    if c_encoding is not NULL:
+        c_encoding[0] = c_enc
+    return offset
 
 
 ############################################################
