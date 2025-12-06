@@ -186,7 +186,7 @@ class EncodingsTestCase(HelperTestCase):
         self.assertEqual(tag_name, root.tag)
 
         doc_encoding = root.getroottree().docinfo.encoding
-        self.assertTrue(
+        self.assertEqual(
             doc_encoding.lower().rstrip('lbe'),
             (xml_encoding_name or encoding).lower().rstrip('lbe'))
 
