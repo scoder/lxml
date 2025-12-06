@@ -360,8 +360,12 @@ cdef class _FileReaderContext:
         if self._encoding is not None:
             c_encoding = _cstr(self._encoding)
         else:
-            self._bytes = self._readBytes(16)
-            self._bytes_read = _detectBOMEncoding(self._bytes, len(self._bytes), &c_encoding)
+            try:
+                self._bytes = self._readBytes(16)
+                self._bytes_read = _detectBOMEncoding(self._bytes, len(self._bytes), &c_encoding)
+            except:
+                self._exc_context._store_raised()
+                return NULL
 
         orig_options = ctxt.options
         with nogil:
