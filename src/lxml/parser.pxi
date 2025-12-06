@@ -312,9 +312,6 @@ cdef class _FileReaderContext:
         self._filelike = filelike
         self._close_file_after_read = close_file
         self._encoding = _utf8orNone(encoding)
-        if self._encoding is not None and self._encoding in (b'UTF-8', b'utf-8', b'UTF8', b'utf8'):
-            # We'll do the same thing below for None, just quicker.
-            self._encoding = None
         if url is not None:
             url = _encodeFilename(url)
             self._c_url = _cstr(url)
