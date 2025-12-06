@@ -70,7 +70,7 @@ environment.LXML_LIMITED_API = "3.12"
 inherit.test-requires = "append"
 test-requires = ["abi3audit>=0.0.22"]
 inherit.test-command = "append"
-test-command = ["abi3audit --strict --report {wheel}"]
+test-command = ["abi3audit --strict --verbose {wheel}"]
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64", "x86"]
