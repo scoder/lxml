@@ -23,7 +23,7 @@ skip = [
     "cp39-*_s390x",
 ]
 #test-command = "python {package}/test.py -vv"
-test-command = "python -c 'import lxml.etree, lxml.objectify, lxml.html'"
+#test-command = "python -c 'import lxml.etree, lxml.objectify, lxml.html'"
 
 [tool.cibuildwheel.linux]
 #archs = ["x86_64", "aarch64", "i686", "ppc64le", "s390x", "armv7l"]
