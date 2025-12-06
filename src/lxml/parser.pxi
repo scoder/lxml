@@ -444,6 +444,23 @@ cdef int _readFilelikeParser(void* ctxt, char* c_buffer, int c_size) noexcept wi
     return (<_FileReaderContext>ctxt).copyToBuffer(c_buffer, c_size)
 
 
+@cython.final
+@cython.internal
+cdef class _UnicodeStringReader:
+    cdef str _data
+    cdef Py_ssize_t _pos
+
+    def __cinit__(self, unicode_string: str):
+        self._data = unicode_string
+
+    def read(self, int count):
+        cdef Py_ssize_t pos = self._pos
+        if pos >= len(self._data):
+            return b''
+        self._pos = pos + count
+        return self._data[pos: pos+count].encode('utf8')
+
+
 ############################################################
 ## support for custom document loaders
 ############################################################
@@ -1983,7 +2000,7 @@ cdef xmlDoc* _parseDoc(text, filename, _BaseParser parser) except NULL:
         return _parseDoc_bytes(<bytes> text, filename, c_filename, parser)
     elif isinstance(text, unicode):
         if python.IN_LIMITED_API:
-            return parser._parseDocFromFilelike(StringIO(text), filename, b'utf-8')
+            return parser._parseDocFromFilelike(_UnicodeStringReader(text), filename, b'utf-8')
         return _parseDoc_unicode(<unicode> text, filename, c_filename, parser)
     else:
         return _parseDoc_charbuffer(text, filename, c_filename, parser)
@@ -1998,7 +2015,7 @@ cdef xmlDoc* _parseDoc_unicode(text: str, filename, const char* c_filename, _Bas
         # old Py_UNICODE string
         c_len = python.PyUnicode_GET_DATA_SIZE(text)
     if c_len > limits.INT_MAX:
-        return parser._parseDocFromFilelike(StringIO(text), filename, None)
+        return parser._parseDocFromFilelike(_UnicodeStringReader(text), filename, None)
     return parser._parseUnicodeDoc(text, c_filename)
 
 
