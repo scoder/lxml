@@ -88,6 +88,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       include: ${{ steps.set-matrix.outputs.include }}
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Install cibuildwheel
@@ -99,14 +104,15 @@ jobs:
             {
               cibuildwheel --print-build-identifiers --platform linux \
               | grep -v musllinux \
+              | grep riscv64 \
               | jq -nRc '{"only": inputs, "os": "ubuntu-latest"}' \
               | sed -e '/aarch64\|armv7l/s|ubuntu-latest|ubuntu-24.04-arm|' \
-              && cibuildwheel --print-build-identifiers --platform macos \
-              | jq -nRc '{"only": inputs, "os": "macos-latest"}' \
-              && cibuildwheel --print-build-identifiers --platform windows  --archs AMD64,x86 \
-              | jq -nRc '{"only": inputs, "os": "windows-2022"}' \
-              && cibuildwheel --print-build-identifiers --platform windows --archs ARM64 \
-              | jq -nRc '{"only": inputs, "os": "windows-11-arm"}'
+              #&& cibuildwheel --print-build-identifiers --platform macos \
+              #| jq -nRc '{"only": inputs, "os": "macos-latest"}' \
+              #&& cibuildwheel --print-build-identifiers --platform windows  --archs AMD64,x86 \
+              #| jq -nRc '{"only": inputs, "os": "windows-2022"}' \
+              #&& cibuildwheel --print-build-identifiers --platform windows --archs ARM64 \
+              #| jq -nRc '{"only": inputs, "os": "windows-11-arm"}'
             } | jq -sc
           )
           echo "include=$MATRIX"
@@ -122,6 +128,10 @@ jobs:
       LIBICONV_VERSION: ${{ contains(matrix.os, 'windows-') && needs.cache_libs.outputs.WIN_LIBICONV_VERSION || needs.cache_libs.outputs.LIBICONV_VERSION }}
       LIBXML2_VERSION: ${{ contains(matrix.os, 'windows-') && needs.cache_libs.outputs.WIN_LIBXML2_VERSION || needs.cache_libs.outputs.LIBXML2_VERSION }}
       LIBXSLT_VERSION: ${{ contains(matrix.os, 'windows-') && needs.cache_libs.outputs.WIN_LIBXSLT_VERSION || needs.cache_libs.outputs.LIBXSLT_VERSION }}
+
+    defaults:
+      run:
+        shell: bash
 
     strategy:
       fail-fast: false
@@ -147,8 +157,17 @@ jobs:
         with:
           platforms: all
 
+      - name: Set up cross-compiler
+        if: runner.os == 'Linux' && endsWith(matrix.only, 'riscv64')
+        run: |
+          sudo apt install gcc-13-riscv64-linux-gnu
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/riscv64-linux-gnu-gcc-13 60
+          which gcc; gcc --version
+
       - name: Build wheels
         uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084 # v3.4.1
+        env:
+          CIBW_XBUILD_TOOLS: "${{ endsWith(matrix.only, 'riscv64') && 'sh bash ls ln rm mkdir cp mv dd make cat sort grep sed awk gawk tee gcc cc ld as ar nm ranlib' || '' }}"
         with:
           only: ${{ matrix.only }}
 
